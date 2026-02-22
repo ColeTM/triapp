@@ -13,9 +13,11 @@ To run Triapp you should have:
 - Java 21+
 - Maven 3.6+
 - MySQL 8+
+
 (In the future I hope to set up deployment with Docker to ease setup for users)
 
 Clone this repo by navigating to your desired directory location and running:
+
 `git clone https://github.com/ColeTM/triapp.git`
 
 Make sure you set the MySQL credentials in `src\main\resources\application.properties`. You can also create a new connection on your device using the default credentials, `username=triapp_user` and `password=triapp_pass`.
@@ -26,7 +28,7 @@ SOURCE [device\path\to\project]\schema.sql.
 ```
 There is also a sample dataset provided. If you would like to run it, you can use the same command replacing `schema.sql` with `seed.sql`.
 
-At this point, you can host the database by running `TriappApplication.java` using your IDE. This also launches `InteractiveConsoleApp.java` which allows you to edit the database in the console with the given commands. To view the data in your browser, go to `http://localhost:8080/api/` and append either `users`, `workouts`, `runs`, `bikes`, or `swims` to view whichever data type you would like. If you edit the database in the console while you have the browser open, you can refresh the page to see the changes.
+At this point, you can host the database by running `TriappApplication.java` using your IDE. This also launches `InteractiveConsoleApp.java` which allows you to edit the database in the console with the given commands. To view the data in your browser, go to `http://localhost:8080/api/` while the server is running and append either `users`, `workouts`, `runs`, `bikes`, or `swims` to the URL to view whichever data type you would like. If you edit the database in the console while you have the browser open, you can refresh the page to see the changes.
 
 
 ## DISCLAIMER:
