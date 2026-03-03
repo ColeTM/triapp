@@ -35,9 +35,33 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserDto>> getAllUsers() {
-        List<UserDto> list = userService.getAll().stream().map(ApiMapper::toUserDto).collect(Collectors.toList());
-        return ResponseEntity.ok(list);
+    public ResponseEntity<List<UserDto>> getAllUsers(
+            @RequestParam(value = "id", required = false) Long id,
+            @RequestParam(value = "firstName", required = false) String firstName,
+            @RequestParam(value = "lastName", required = false) String lastName,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "heightInches", required = false) Integer heightInches,
+            @RequestParam(value = "minHeightInches", required = false) Integer minHeightInches,
+            @RequestParam(value = "maxHeightInches", required = false) Integer maxHeightInches,
+            @RequestParam(value = "weightPounds", required = false) Double weightPounds,
+            @RequestParam(value = "minWeightPounds", required = false) Double minWeightPounds,
+            @RequestParam(value = "maxWeightPounds", required = false) Double maxWeightPounds
+    ) {
+        boolean anyFilter = id != null || firstName != null || lastName != null || email != null ||
+                minHeightInches != null || maxHeightInches != null || minWeightPounds != null || maxWeightPounds != null;
+
+        if (!anyFilter) {
+            List<UserDto> dtos = userService.getAll().stream().map(ApiMapper::toUserDto).collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        }
+
+        List<UserDto> dtos = userService.findByFilters(
+                id, firstName, lastName, email,
+                heightInches, minHeightInches, maxHeightInches,
+                weightPounds, minWeightPounds, maxWeightPounds
+        ).stream().map(ApiMapper::toUserDto).collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
 
     @PutMapping("/{id}")

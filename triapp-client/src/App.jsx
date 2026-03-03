@@ -1,17 +1,17 @@
 import React from 'react'
-import DataTable from './components/DataTable'
+import DataExplorer from './components/DataExplorer'
 import './index.css'
 
 export default function App() {
   return (
     <div className="container">
       <header>
-        <h1>TriApp Records</h1>
-        <p>Backend: http://localhost:8080</p>
+        <h1>TriApp Records Explorer</h1>
+        <p>Backend: http://localhost:8080 — use Fetch All / By ID / With Query to get subsets</p>
       </header>
 
       <main>
-        <DataTable
+        <DataExplorer
           title="Users"
           endpoint="/api/users"
           columns={[
@@ -24,7 +24,7 @@ export default function App() {
           ]}
         />
 
-        <DataTable
+        <DataExplorer
           title="Workouts"
           endpoint="/api/workouts"
           columns={[
@@ -39,7 +39,7 @@ export default function App() {
           ]}
         />
 
-        <DataTable
+        <DataExplorer
           title="Runs"
           endpoint="/api/runs"
           columns={[
@@ -53,7 +53,7 @@ export default function App() {
           ]}
         />
 
-        <DataTable
+        <DataExplorer
           title="Bikes"
           endpoint="/api/bikes"
           columns={[
@@ -67,7 +67,7 @@ export default function App() {
           ]}
         />
 
-        <DataTable
+        <DataExplorer
           title="Swims"
           endpoint="/api/swims"
           columns={[

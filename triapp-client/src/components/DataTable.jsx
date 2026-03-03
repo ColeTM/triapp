@@ -1,17 +1,14 @@
 import React, { useEffect, useState } from 'react'
 
-/* --- helpers --- */
+/* --- helpers (same as before) --- */
 const toCamel = s => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
 const toSnake = s => s.replace(/[A-Z]/g, m => '_' + m.toLowerCase())
 
 function resolveValue(obj, key) {
   if (!obj || !key) return undefined
-
-  // nested path support (not needed for your current API but kept)
   if (key.includes('.')) {
     return key.split('.').reduce((cur, p) => (cur ? resolveValue(cur, p) : undefined), obj)
   }
-
   if (Object.prototype.hasOwnProperty.call(obj, key)) return obj[key]
   const camel = toCamel(key)
   if (Object.prototype.hasOwnProperty.call(obj, camel)) return obj[camel]
@@ -19,10 +16,8 @@ function resolveValue(obj, key) {
   if (Object.prototype.hasOwnProperty.call(obj, snake)) return obj[snake]
   const lower = key.toLowerCase()
   if (Object.prototype.hasOwnProperty.call(obj, lower)) return obj[lower]
-
   const found = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase())
   if (found) return obj[found]
-
   return undefined
 }
 
@@ -46,54 +41,52 @@ function secToMinSec(sec) {
 
 function prettyFormat(key, value) {
   if (value == null) return ""
-  // numbers that should be shown as integers
   if (key === 'heightInches' || key === 'weightPounds' || key === 'steps' || key.endsWith('Feet')) {
     return String(value)
   }
-
-  // times in seconds
   if (key.endsWith('Sec') || key.endsWith('SecPerMile')) {
-    // elapsedTimeSec, movingTimeSec -> H:MM:SS
     if (key.toLowerCase().includes('elapsed') || key.toLowerCase().includes('moving')) {
       return secToHms(value)
     }
-    // avgPaceSecPerMile -> mm:ss per mile
     if (key.toLowerCase().includes('pace') && key.toLowerCase().includes('mile')) {
       return secToMinSec(value)
     }
     return String(value)
   }
-
-  // avgPaceSecPer100Y -> mm:ss /100y
   if (key === 'avgPaceSecPer100Y') {
     return secToMinSec(value) + ' /100y'
   }
-
-  // speeds / rates
   if (key.toLowerCase().includes('speed') || key.toLowerCase().includes('mph')) {
     return Number(value).toFixed(1)
   }
-
-  // pace fields that explicitly contain 'Pace' measured in sec per mile
   if (key.toLowerCase().includes('pace') && typeof value === 'number') {
     return secToMinSec(value)
   }
-
-  // default: stringify
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
 
-/* --- component --- */
-export default function DataTable({ title, endpoint, columns }) {
+/* --- DataTable component --- */
+/**
+ * Props:
+ *  - title: string
+ *  - endpoint: base endpoint (e.g. "/api/users")
+ *  - fetchUrl: optional full URL to fetch instead (overrides endpoint)
+ *  - columns: [{key,label}, ...]
+ */
+export default function DataTable({ title, endpoint, fetchUrl, columns }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // compute url to fetch: fetchUrl (explicit) or endpoint
+  const urlToFetch = fetchUrl || endpoint
+
   useEffect(() => {
+    if (!urlToFetch) return
     setLoading(true)
     setError(null)
-    fetch(endpoint)
+    fetch(urlToFetch)
       .then(async res => {
         if (!res.ok) {
           const txt = await res.text()
@@ -111,8 +104,9 @@ export default function DataTable({ title, endpoint, columns }) {
         setError(e.toString())
       })
       .finally(() => setLoading(false))
-  }, [endpoint, title])
+  }, [urlToFetch, title])
 
+  if (!urlToFetch) return <div style={{color:'orange'}}>No endpoint configured for {title}</div>
   if (loading) return <div>Loading {title}...</div>
   if (error) return <div style={{color:'red'}}>Error loading {title}: {error}</div>
   if (!data || data.length === 0) return <div>No {title} found</div>
@@ -120,6 +114,9 @@ export default function DataTable({ title, endpoint, columns }) {
   return (
     <section className="table-section">
       <h2>{title}</h2>
+      <div style={{marginBottom:8}}>
+        <small>Showing <strong>{data.length}</strong> rows from <code>{urlToFetch}</code></small>
+      </div>
       <div className="table-wrap">
         <table>
           <thead>

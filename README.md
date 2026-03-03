@@ -4,7 +4,7 @@ This is a semester-long project for CSCE548 -- Building Secure Software.
 
 Triapp is an app that tracks data for people who are training for a triathlon. It holds data related to its users, workouts, and specific data related to the type of workout (run, bike, swim).
 
-This project is still in development. Currently, it contains data, business, and service layers. Soon, a client layer will be added, and then tests will be run to analyze the app's security.
+* This project is still in development. The following directions are not fully up-to-date; it does not yet account for the newly added client layer, but it will be updated soon.
 
 ## Hosting the Database
 
