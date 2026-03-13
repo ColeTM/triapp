@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.triapp.data.DataProvider;
+import com.example.triapp.dto.workout.CreateWorkoutRequest;
+import com.example.triapp.model.Bike;
+import com.example.triapp.model.Run;
+import com.example.triapp.model.Swim;
 import com.example.triapp.model.Workout;
 import com.example.triapp.service.WorkoutService;
 
@@ -19,6 +23,50 @@ public class WorkoutServiceImpl implements WorkoutService {
 
     public WorkoutServiceImpl(DataProvider dataProvider) {
         this.dataProvider = dataProvider;
+    }
+
+    /**
+     * Creates a workout and, if subtype data is present on the request,
+     * also creates the associated Run/Bike/Swim record in the same transaction.
+     */
+    @Transactional
+    public Workout saveWithSubtype(Workout workout, CreateWorkoutRequest req) {
+        try {
+            long workoutId = dataProvider.createWorkout(workout);
+
+            // Create the subtype record if its data was provided
+            String type = workout.getWorkoutType();
+            if ("RUN".equalsIgnoreCase(type) && req.getRunData() != null) {
+                Run run = new Run();
+                run.setWorkoutId(workoutId);
+                run.setDistanceMiles(req.getRunData().getDistanceMiles());
+                run.setAvgPaceSecPerMile(req.getRunData().getAvgPaceSecPerMile());
+                run.setElevationGainFeet(req.getRunData().getElevationGainFeet());
+                run.setSteps(req.getRunData().getSteps());
+                run.setAvgCadenceSpm(req.getRunData().getAvgCadenceSpm());
+                dataProvider.createRun(run);
+            } else if ("BIKE".equalsIgnoreCase(type) && req.getBikeData() != null) {
+                Bike bike = new Bike();
+                bike.setWorkoutId(workoutId);
+                bike.setDistanceMiles(req.getBikeData().getDistanceMiles());
+                bike.setAvgSpeedMph(req.getBikeData().getAvgSpeedMph());
+                bike.setMaxSpeedMph(req.getBikeData().getMaxSpeedMph());
+                bike.setElevationGainFeet(req.getBikeData().getElevationGainFeet());
+                bike.setAvgPedalRateRpm(req.getBikeData().getAvgPedalRateRpm());
+                dataProvider.createBike(bike);
+            } else if ("SWIM".equalsIgnoreCase(type) && req.getSwimData() != null) {
+                Swim swim = new Swim();
+                swim.setWorkoutId(workoutId);
+                swim.setDistanceYards(req.getSwimData().getDistanceYards());
+                swim.setAvgPaceSecPer100Y(req.getSwimData().getAvgPaceSecPer100Y());
+                swim.setAvgStrokeRateSpm(req.getSwimData().getAvgStrokeRateSpm());
+                dataProvider.createSwim(swim);
+            }
+
+            return dataProvider.readWorkoutById(workoutId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to create workout with subtype", e);
+        }
     }
 
     @Override
@@ -81,10 +129,6 @@ public class WorkoutServiceImpl implements WorkoutService {
         }
     }
 
-    /**
-     * Filter workouts in-memory using DataProvider results.
-     * This avoids changing the DataProvider layer and is fine for moderate result sizes.
-     */
     @Override
     public List<Workout> findByFilters(
             Long id,
@@ -106,30 +150,22 @@ public class WorkoutServiceImpl implements WorkoutService {
             Integer maxCalories
     ) {
         try {
-            // Start from full dataset (safe, consistent)
             List<Workout> base = dataProvider.readAllWorkouts();
 
             return base.stream()
                     .filter(w -> {
-                        // id (exact)
                         if (id != null) {
                             Long wid = w.getId();
                             if (wid == null || !id.equals(wid)) return false;
                         }
-
-                        // userId (exact)
                         if (userId != null) {
                             Long uid = w.getUserId();
                             if (uid == null || !userId.equals(uid)) return false;
                         }
-
-                        // workoutType (exact, case-insensitive)
                         if (workoutType != null) {
                             String wt = w.getWorkoutType();
                             if (wt == null || !wt.equalsIgnoreCase(workoutType)) return false;
                         }
-
-                        // date range
                         if (dateFrom != null) {
                             LocalDateTime d = w.getDate();
                             if (d == null || d.isBefore(dateFrom)) return false;
@@ -138,8 +174,6 @@ public class WorkoutServiceImpl implements WorkoutService {
                             LocalDateTime d = w.getDate();
                             if (d == null || d.isAfter(dateTo)) return false;
                         }
-
-                        // movingTimeSec: exact or range
                         if (movingTimeSec != null) {
                             Integer v = w.getMovingTimeSec();
                             if (v == null || !movingTimeSec.equals(v)) return false;
@@ -152,8 +186,6 @@ public class WorkoutServiceImpl implements WorkoutService {
                             Integer v = w.getMovingTimeSec();
                             if (v == null || v > maxMovingTimeSec) return false;
                         }
-
-                        // elapsedTimeSec: exact or range
                         if (elapsedTimeSec != null) {
                             Integer v = w.getElapsedTimeSec();
                             if (v == null || !elapsedTimeSec.equals(v)) return false;
@@ -166,8 +198,6 @@ public class WorkoutServiceImpl implements WorkoutService {
                             Integer v = w.getElapsedTimeSec();
                             if (v == null || v > maxElapsedTimeSec) return false;
                         }
-
-                        // avgHeartRate: exact or range
                         if (avgHeartRate != null) {
                             Integer v = w.getAvgHeartRate();
                             if (v == null || !avgHeartRate.equals(v)) return false;
@@ -180,8 +210,6 @@ public class WorkoutServiceImpl implements WorkoutService {
                             Integer v = w.getAvgHeartRate();
                             if (v == null || v > maxAvgHeartRate) return false;
                         }
-
-                        // calories: exact or range
                         if (calories != null) {
                             Integer v = w.getCalories();
                             if (v == null || !calories.equals(v)) return false;
@@ -194,7 +222,6 @@ public class WorkoutServiceImpl implements WorkoutService {
                             Integer v = w.getCalories();
                             if (v == null || v > maxCalories) return false;
                         }
-
                         return true;
                     })
                     .collect(Collectors.toList());

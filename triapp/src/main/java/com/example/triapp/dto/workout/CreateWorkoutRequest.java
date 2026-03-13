@@ -16,7 +16,13 @@ public class CreateWorkoutRequest {
     private Integer avgHeartRate;
     private Integer calories;
 
-    // getters & setters
+    // Optional nested subtype data — only one should be set,
+    // matching the workoutType field
+    private CreateRunData  runData;
+    private CreateBikeData bikeData;
+    private CreateSwimData swimData;
+
+    // existing getters/setters
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getWorkoutType() { return workoutType; }
@@ -31,4 +37,12 @@ public class CreateWorkoutRequest {
     public void setAvgHeartRate(Integer avgHeartRate) { this.avgHeartRate = avgHeartRate; }
     public Integer getCalories() { return calories; }
     public void setCalories(Integer calories) { this.calories = calories; }
+
+    // nested subtype getters/setters
+    public CreateRunData getRunData() { return runData; }
+    public void setRunData(CreateRunData runData) { this.runData = runData; }
+    public CreateBikeData getBikeData() { return bikeData; }
+    public void setBikeData(CreateBikeData bikeData) { this.bikeData = bikeData; }
+    public CreateSwimData getSwimData() { return swimData; }
+    public void setSwimData(CreateSwimData swimData) { this.swimData = swimData; }
 }

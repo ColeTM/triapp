@@ -39,7 +39,8 @@ public class WorkoutController {
     @PostMapping
     public ResponseEntity<WorkoutDto> createWorkout(@Valid @RequestBody CreateWorkoutRequest req) {
         Workout w = ApiMapper.toWorkout(req);
-        Workout created = workoutService.save(w);
+        // Use saveWithSubtype so the Run/Bike/Swim record is created in the same transaction
+        Workout created = workoutService.saveWithSubtype(w, req);
         return new ResponseEntity<>(ApiMapper.toWorkoutDto(created), HttpStatus.CREATED);
     }
 
@@ -70,8 +71,6 @@ public class WorkoutController {
             @RequestParam(value = "minCalories", required = false) Integer minCalories,
             @RequestParam(value = "maxCalories", required = false) Integer maxCalories
     ) {
-
-        // If no filter params are present, return the fast all path
         boolean anyFilterPresent = id != null || userId != null || workoutType != null ||
                 dateFromStr != null || dateToStr != null ||
                 movingTimeSec != null || minMovingTimeSec != null || maxMovingTimeSec != null ||
@@ -80,11 +79,11 @@ public class WorkoutController {
                 calories != null || minCalories != null || maxCalories != null;
 
         if (!anyFilterPresent) {
-            List<WorkoutDto> dtos = workoutService.getAll().stream().map(ApiMapper::toWorkoutDto).collect(Collectors.toList());
+            List<WorkoutDto> dtos = workoutService.getAll().stream()
+                    .map(ApiMapper::toWorkoutDto).collect(Collectors.toList());
             return ResponseEntity.ok(dtos);
         }
 
-        // parse date range (accept YYYY-MM-DD or ISO date-time)
         LocalDateTime dateFrom = null;
         LocalDateTime dateTo = null;
         try {
@@ -118,7 +117,8 @@ public class WorkoutController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<WorkoutDto> updateWorkout(@PathVariable long id, @Valid @RequestBody UpdateWorkoutRequest req) {
+    public ResponseEntity<WorkoutDto> updateWorkout(@PathVariable long id,
+                                                    @Valid @RequestBody UpdateWorkoutRequest req) {
         Workout existing = workoutService.getById(id);
         if (existing == null) return ResponseEntity.notFound().build();
         ApiMapper.updateWorkoutFrom(req, existing);

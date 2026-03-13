@@ -1,15 +1,14 @@
 package com.example.triapp.controller;
 
-import com.example.triapp.data.DataProvider;
 import com.example.triapp.dto.swim.*;
 import com.example.triapp.mapper.ApiMapper;
 import com.example.triapp.model.Swim;
+import com.example.triapp.service.SwimService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,48 +16,73 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/swims")
 public class SwimController {
 
-    private final DataProvider dataProvider;
+    private final SwimService swimService;
 
-    public SwimController(DataProvider dataProvider) {
-        this.dataProvider = dataProvider;
+    public SwimController(SwimService swimService) {
+        this.swimService = swimService;
     }
 
     @PostMapping
-    public ResponseEntity<SwimDto> createSwim(@Valid @RequestBody CreateSwimRequest req) throws SQLException {
+    public ResponseEntity<SwimDto> createSwim(@Valid @RequestBody CreateSwimRequest req) {
         Swim s = ApiMapper.toSwim(req);
-        long id = dataProvider.createSwim(s);
-        Swim created = dataProvider.readSwimById(id);
+        Swim created = swimService.save(s);
         return new ResponseEntity<>(ApiMapper.toSwimDto(created), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SwimDto> getSwim(@PathVariable long id) throws SQLException {
-        Swim s = dataProvider.readSwimById(id);
+    public ResponseEntity<SwimDto> getSwim(@PathVariable long id) {
+        Swim s = swimService.getById(id);
         if (s == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(ApiMapper.toSwimDto(s));
     }
 
     @GetMapping
-    public ResponseEntity<List<SwimDto>> getAllSwims() throws SQLException {
-        List<Swim> swims = dataProvider.readAllSwims();
-        List<SwimDto> dtos = swims.stream().map(ApiMapper::toSwimDto).collect(Collectors.toList());
+    public ResponseEntity<List<SwimDto>> getAllSwims(
+            @RequestParam(value = "id",                   required = false) Long id,
+            @RequestParam(value = "workoutId",            required = false) Long workoutId,
+            @RequestParam(value = "distanceYards",        required = false) Integer distanceYards,
+            @RequestParam(value = "minDistanceYards",     required = false) Integer minDistanceYards,
+            @RequestParam(value = "maxDistanceYards",     required = false) Integer maxDistanceYards,
+            @RequestParam(value = "avgPaceSecPer100Y",    required = false) Integer avgPaceSecPer100Y,
+            @RequestParam(value = "minAvgPaceSecPer100Y", required = false) Integer minAvgPaceSecPer100Y,
+            @RequestParam(value = "maxAvgPaceSecPer100Y", required = false) Integer maxAvgPaceSecPer100Y,
+            @RequestParam(value = "avgStrokeRateSpm",     required = false) Integer avgStrokeRateSpm,
+            @RequestParam(value = "minAvgStrokeRateSpm",  required = false) Integer minAvgStrokeRateSpm,
+            @RequestParam(value = "maxAvgStrokeRateSpm",  required = false) Integer maxAvgStrokeRateSpm
+    ) {
+        boolean anyFilter = id != null || workoutId != null ||
+                distanceYards != null || minDistanceYards != null || maxDistanceYards != null ||
+                avgPaceSecPer100Y != null || minAvgPaceSecPer100Y != null || maxAvgPaceSecPer100Y != null ||
+                avgStrokeRateSpm != null || minAvgStrokeRateSpm != null || maxAvgStrokeRateSpm != null;
+
+        if (!anyFilter) {
+            List<SwimDto> dtos = swimService.getAll().stream()
+                    .map(ApiMapper::toSwimDto).collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        }
+
+        List<SwimDto> dtos = swimService.findByFilters(
+                id, workoutId,
+                distanceYards, minDistanceYards, maxDistanceYards,
+                avgPaceSecPer100Y, minAvgPaceSecPer100Y, maxAvgPaceSecPer100Y,
+                avgStrokeRateSpm, minAvgStrokeRateSpm, maxAvgStrokeRateSpm
+        ).stream().map(ApiMapper::toSwimDto).collect(Collectors.toList());
+
         return ResponseEntity.ok(dtos);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<SwimDto> updateSwim(@PathVariable long id, @RequestBody UpdateSwimRequest req) throws SQLException {
-        Swim existing = dataProvider.readSwimById(id);
+    public ResponseEntity<SwimDto> updateSwim(@PathVariable long id, @RequestBody UpdateSwimRequest req) {
+        Swim existing = swimService.getById(id);
         if (existing == null) return ResponseEntity.notFound().build();
         ApiMapper.updateSwimFrom(req, existing);
-        boolean ok = dataProvider.updateSwim(existing);
-        if (!ok) return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        Swim updated = dataProvider.readSwimById(id);
+        Swim updated = swimService.update(existing);
         return ResponseEntity.ok(ApiMapper.toSwimDto(updated));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSwim(@PathVariable long id) throws SQLException {
-        boolean ok = dataProvider.deleteSwim(id);
+    public ResponseEntity<Void> deleteSwim(@PathVariable long id) {
+        boolean ok = swimService.delete(id);
         if (!ok) return ResponseEntity.notFound().build();
         return ResponseEntity.noContent().build();
     }

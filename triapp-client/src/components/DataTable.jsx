@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
-/* --- helpers (same as before) --- */
+/* --- helpers --- */
 const toCamel = s => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
 const toSnake = s => s.replace(/[A-Z]/g, m => '_' + m.toLowerCase())
 
@@ -72,14 +72,15 @@ function prettyFormat(key, value) {
  *  - title: string
  *  - endpoint: base endpoint (e.g. "/api/users")
  *  - fetchUrl: optional full URL to fetch instead (overrides endpoint)
- *  - columns: [{key,label}, ...]
+ *  - columns: [{key, label}, ...]
+ *  - onEdit: optional (row) => void — if provided, an Edit button column is added
+ *  - onDelete: optional (row) => void — if provided, a Delete button column is added
  */
-export default function DataTable({ title, endpoint, fetchUrl, columns }) {
+export default function DataTable({ title, endpoint, fetchUrl, columns, onEdit, onDelete }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // compute url to fetch: fetchUrl (explicit) or endpoint
   const urlToFetch = fetchUrl || endpoint
 
   useEffect(() => {
@@ -106,15 +107,15 @@ export default function DataTable({ title, endpoint, fetchUrl, columns }) {
       .finally(() => setLoading(false))
   }, [urlToFetch, title])
 
-  if (!urlToFetch) return <div style={{color:'orange'}}>No endpoint configured for {title}</div>
-  if (loading) return <div>Loading {title}...</div>
-  if (error) return <div style={{color:'red'}}>Error loading {title}: {error}</div>
+  if (!urlToFetch) return <div style={{ color: 'orange' }}>No endpoint configured for {title}</div>
+  if (loading)     return <div>Loading {title}...</div>
+  if (error)       return <div style={{ color: 'red' }}>Error loading {title}: {error}</div>
   if (!data || data.length === 0) return <div>No {title} found</div>
 
   return (
     <section className="table-section">
       <h2>{title}</h2>
-      <div style={{marginBottom:8}}>
+      <div style={{ marginBottom: 8 }}>
         <small>Showing <strong>{data.length}</strong> rows from <code>{urlToFetch}</code></small>
       </div>
       <div className="table-wrap">
@@ -122,16 +123,53 @@ export default function DataTable({ title, endpoint, fetchUrl, columns }) {
           <thead>
             <tr>
               {columns.map(c => <th key={c.key}>{c.label}</th>)}
+              {(onEdit || onDelete) && <th style={{ width: 60 }}></th>}
             </tr>
           </thead>
           <tbody>
             {data.map((row, i) => (
               <tr key={i}>
                 {columns.map(col => {
-                  const raw = resolveValue(row, col.key)
+                  const raw  = resolveValue(row, col.key)
                   const cell = prettyFormat(col.key, raw)
                   return <td key={col.key}>{cell}</td>
                 })}
+                {(onEdit || onDelete) && (
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(row)}
+                        style={{
+                          fontSize: '0.78rem',
+                          padding: '0.2rem 0.6rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: 4,
+                          background: '#f9fafb',
+                          cursor: 'pointer',
+                          marginRight: onDelete ? 4 : 0,
+                        }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(row)}
+                        style={{
+                          fontSize: '0.78rem',
+                          padding: '0.2rem 0.6rem',
+                          border: '1px solid #fca5a5',
+                          borderRadius: 4,
+                          background: '#fef2f2',
+                          color: '#b91c1c',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
